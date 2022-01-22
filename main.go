@@ -24,7 +24,6 @@ type country struct {
 }
 
 func main() {
-
 	tpl, err := template.New("").Funcs(fm).ParseGlob("templates/*.gohtml")
 	if err != nil {
 		log.Fatalln(err)

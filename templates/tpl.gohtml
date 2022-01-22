@@ -7,10 +7,8 @@
 <body>
     <ul>
         {{range .}}
-        <li>{{ft .Capital}} является столицей для {{uc .Name}}</li>
+        <li>{{.Capital | ft | uc }} является столицей для {{uc .Name}}</li>
         {{end}}
     </ul>
 </body>
 </html>
-
-
