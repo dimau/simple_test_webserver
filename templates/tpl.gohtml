@@ -2,9 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Evoniser</title>
+    <meta name="description" content="Main page for Evoniser project">
+    <meta name="author" content="Dmitrii Ushakov">
+
+    <meta property="og:title" content="Evoniser - ERP for everyone">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.evoniser.com/">
+    <meta property="og:description" content="ERP is dedicated to maintain business processes for any organization">
+    <!--<meta property="og:image" content="image.png">
+
+    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="css/styles.css?v=1.0">
+    -->
 </head>
 <body>
+    <h1>Evoniser - open ERP for everyone</h1>
     <ul>
         {{range .}}
         <li>{{.Capital | ft | uc }} является столицей для {{uc .Name}}</li>
