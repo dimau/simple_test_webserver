@@ -3,8 +3,20 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 	"text/template"
 )
+
+func firstThree(s string) string {
+	s = strings.TrimSpace(s)
+	s = s[:3]
+	return s
+}
+
+var fm = template.FuncMap{
+	"uc": strings.ToUpper,
+	"ft": firstThree,
+}
 
 type country struct {
 	Name    string
@@ -12,7 +24,8 @@ type country struct {
 }
 
 func main() {
-	tpl, err := template.ParseGlob("templates/*.gohtml")
+
+	tpl, err := template.New("").Funcs(fm).ParseGlob("templates/*.gohtml")
 	if err != nil {
 		log.Fatalln(err)
 	}
