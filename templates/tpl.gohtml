@@ -22,11 +22,13 @@
     -->
 </head>
 <body>
+    {{template "header" .}}
     <h1>Evoniser - open ERP for everyone</h1>
     <ul>
-        {{range .}}
+        {{range .Countries}}
         <li>{{.Capital | ft | uc }} является столицей для {{uc .Name}}</li>
         {{end}}
     </ul>
 </body>
 </html>
+

@@ -23,6 +23,11 @@ type country struct {
 	Capital string
 }
 
+type dataForTemplate struct {
+	Countries    []country
+	HeaderString string
+}
+
 func main() {
 	tpl, err := template.New("").Funcs(fm).ParseGlob("templates/*.gohtml")
 	if err != nil {
@@ -32,7 +37,11 @@ func main() {
 	russia := country{Name: "Russia", Capital: "Moscow"}
 	germany := country{Name: "Germany", Capital: "Berlin"}
 	countries := []country{russia, germany}
-	err = tpl.ExecuteTemplate(os.Stdout, "tpl.gohtml", countries)
+	data := dataForTemplate{
+		Countries:    countries,
+		HeaderString: "This is a header string",
+	}
+	err = tpl.ExecuteTemplate(os.Stdout, "tpl.gohtml", data)
 
 	if err != nil {
 		log.Fatalln(err)
