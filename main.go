@@ -33,21 +33,28 @@ type dataForTemplate struct {
 func handler(conn net.Conn, tpl *template.Template, data dataForTemplate) {
 	defer conn.Close()
 
-	// read request
-	request(conn)
+	// read request and retrieve http method and path
+	method, path := request(conn)
 
-	// write response
-	respond(conn, tpl, data)
+	// choose respond function based on http method and path
+	respondFunction := router(method, path)
+
+	// write response (execute corresponging respond function)
+	if respondFunction != nil {
+		respondFunction(conn, tpl, data)
+	}
 }
 
-func request(conn net.Conn) {
+// define read request function
+func request(conn net.Conn) (method string, path string) {
 	i := 0
+	method, path = "", ""
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		ln := scanner.Text()
 		fmt.Println(ln)
 		if i == 0 {
-			method, path := strings.Fields(ln)[0], strings.Fields(ln)[1]
+			method, path = strings.Fields(ln)[0], strings.Fields(ln)[1]
 			fmt.Println("***METHOD: ", method, " PATH: ", path)
 		}
 		if ln == "" {
@@ -56,9 +63,24 @@ func request(conn net.Conn) {
 		}
 		i++
 	}
+
+	return method, path
 }
 
-func respond(conn net.Conn, tpl *template.Template, data dataForTemplate) {
+// router
+type fn func(net.Conn, *template.Template, dataForTemplate)
+
+func router(method string, path string) fn {
+	routes := map[string]map[string]fn{}
+	routes["GET"] = map[string]fn{
+		"/": respondMainPage,
+	}
+
+	return routes[method][path]
+}
+
+// respond functions
+func respondMainPage(conn net.Conn, tpl *template.Template, data dataForTemplate) {
 	fmt.Fprint(conn, "HTTP/1.1 200 OK\r\n")
 	fmt.Fprint(conn, "Content-Type: text/html\r\n")
 	fmt.Fprint(conn, "\r\n")
