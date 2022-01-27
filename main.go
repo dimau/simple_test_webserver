@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"net"
+	"net/http"
 	"strings"
 	"text/template"
 )
@@ -30,68 +28,9 @@ type dataForTemplate struct {
 	HeaderString string
 }
 
-func handler(conn net.Conn, tpl *template.Template, data dataForTemplate) {
-	defer conn.Close()
+type httpHandler int
 
-	// read request and retrieve http method and path
-	method, path := request(conn)
-
-	// choose respond function based on http method and path
-	respondFunction := router(method, path)
-
-	// write response (execute corresponging respond function)
-	if respondFunction != nil {
-		respondFunction(conn, tpl, data)
-	}
-}
-
-// define read request function
-func request(conn net.Conn) (method string, path string) {
-	i := 0
-	method, path = "", ""
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		ln := scanner.Text()
-		fmt.Println(ln)
-		if i == 0 {
-			method, path = strings.Fields(ln)[0], strings.Fields(ln)[1]
-			fmt.Println("***METHOD: ", method, " PATH: ", path)
-		}
-		if ln == "" {
-			// headers are done
-			break
-		}
-		i++
-	}
-
-	return method, path
-}
-
-// router
-type fn func(net.Conn, *template.Template, dataForTemplate)
-
-func router(method string, path string) fn {
-	routes := map[string]map[string]fn{}
-	routes["GET"] = map[string]fn{
-		"/": respondMainPage,
-	}
-
-	return routes[method][path]
-}
-
-// respond functions
-func respondMainPage(conn net.Conn, tpl *template.Template, data dataForTemplate) {
-	fmt.Fprint(conn, "HTTP/1.1 200 OK\r\n")
-	fmt.Fprint(conn, "Content-Type: text/html\r\n")
-	fmt.Fprint(conn, "\r\n")
-	// fmt.Fprintln(conn, "Content-Length: "+strconv.Itoa(len(body)))
-	err := tpl.ExecuteTemplate(conn, "tpl.gohtml", data)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-}
-
-func main() {
+func (h httpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// prepairing template container
 	tpl, err := template.New("").Funcs(fm).ParseGlob("templates/*.gohtml")
@@ -108,21 +47,19 @@ func main() {
 		HeaderString: "This is a header string",
 	}
 
-	// running TCP server
-	li, err := net.Listen("tcp", ":8080")
+	err = tpl.ExecuteTemplate(rw, "tpl.gohtml", data)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	defer li.Close()
+}
 
-	for {
-		conn, err := li.Accept()
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
+func main() {
 
-		// each TCP request will be handled by distinct goroutine
-		go handler(conn, tpl, data)
+	// running HTTP server
+	var handler httpHandler
+	err := http.ListenAndServe(":8080", handler)
+	if err != nil {
+		log.Fatalln(err.Error())
 	}
 
 }
