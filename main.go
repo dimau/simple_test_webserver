@@ -3,63 +3,39 @@ package main
 import (
 	"log"
 	"net/http"
-	"strings"
 	"text/template"
 )
 
-func firstThree(s string) string {
-	s = strings.TrimSpace(s)
-	s = s[:3]
-	return s
+// Инициализация контейнера с шаблонами HTML страниц
+var tpl *template.Template
+
+func init() {
+	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
 }
 
-var fm = template.FuncMap{
-	"uc": strings.ToUpper,
-	"ft": firstThree,
-}
-
-type country struct {
-	Name    string
-	Capital string
-}
-
-type dataForTemplate struct {
-	Countries    []country
-	HeaderString string
-}
-
-type httpHandler int
-
-func (h httpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-
-	// prepairing template container
-	tpl, err := template.New("").Funcs(fm).ParseGlob("templates/*.gohtml")
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	// prepairing data for the HTML template
-	russia := country{Name: "Russia", Capital: "Moscow"}
-	germany := country{Name: "Germany", Capital: "Berlin"}
-	countries := []country{russia, germany}
-	data := dataForTemplate{
-		Countries:    countries,
-		HeaderString: "This is a header string",
-	}
-
-	err = tpl.ExecuteTemplate(rw, "tpl.gohtml", data)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-}
-
+// Запуск HTTP сервера с одним обработчиком на все виды запросов
 func main() {
-
-	// running HTTP server
 	var handler httpHandler
 	err := http.ListenAndServe(":8080", handler)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+}
 
+// Сам обработчик HTTP запросов
+type httpHandler int
+
+func (h httpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+
+	// parsing and working with http request
+	err := req.ParseForm() // before get form data from http.Request you need to call this method
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// executing template for HTML page
+	err = tpl.ExecuteTemplate(rw, "tpl.gohtml", req.Form)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }

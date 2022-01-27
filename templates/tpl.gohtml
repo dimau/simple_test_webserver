@@ -1,34 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Evoniser</title>
-    <meta name="description" content="Main page for Evoniser project">
-    <meta name="author" content="Dmitrii Ushakov">
-
-    <meta property="og:title" content="Evoniser - ERP for everyone">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.evoniser.com/">
-    <meta property="og:description" content="ERP is dedicated to maintain business processes for any organization">
-    <!--<meta property="og:image" content="image.png">
-
-    <link rel="icon" href="/favicon.ico">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-
-    <link rel="stylesheet" href="css/styles.css?v=1.0">
-    -->
 </head>
 <body>
     {{template "header" .}}
     <h1>Evoniser - open ERP for everyone</h1>
-    <ul>
-        {{range .Countries}}
-        <li>{{.Capital | ft | uc }} является столицей для {{uc .Name}}</li>
+
+    <!-- Форма для заполнения -->
+    <form action="/form_handler" method="POST">
+        <input type="text" name="first_name" placeholder="Your first name" autofocus autocomplete="off">
+        <input type="submit" name="submit_btn" value="onda button">
+    </form>
+
+    <!-- Блок для отображения данных из отправленной заполненной формы -->
+    {{if .}} <!-- показывается только, если форма была заполнена и отправлена на сервер --> 
+    <main>
+        {{range $name, $values := .}} <!-- проходим по структуре map[string][]string -->  
+        <p>Parameter {{$name}} values:<p>
+        <ul>
+            {{range $values}}
+            <li>{{.}}</li>
+            {{end}}
+        </ul>
         {{end}}
-    </ul>
+    </main>
+    {{end}}
 </body>
 </html>
 
