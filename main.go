@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"text/template"
@@ -13,19 +14,28 @@ func init() {
 	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
 }
 
-// Запуск HTTP сервера с одним обработчиком на все виды запросов
 func main() {
-	var handler httpHandler
-	err := http.ListenAndServe(":8080", handler)
+
+	http.HandleFunc("/", indexPageHandler)
+	http.HandleFunc("/about", aboutPageHandler)
+	http.HandleFunc("/main", mainPageHandler)
+	http.HandleFunc("/form_handler", mainPageHandler)
+
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 }
 
-// Сам обработчик HTTP запросов
-type httpHandler int
+func indexPageHandler(w http.ResponseWriter, req *http.Request) {
+	io.WriteString(w, "<!DOCTYPE html><html><head><title>Index page</title></head><body><p>It's index page</p></body></html>")
+}
 
-func (h httpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func aboutPageHandler(w http.ResponseWriter, req *http.Request) {
+	io.WriteString(w, "<!DOCTYPE html><html><head><title>About page</title></head><body><p>It's about page</p></body></html>")
+}
+
+func mainPageHandler(w http.ResponseWriter, req *http.Request) {
 
 	// parsing and working with http request
 	err := req.ParseForm() // before get form data from http.Request you need to call this method
@@ -34,7 +44,7 @@ func (h httpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// executing template for HTML page
-	err = tpl.ExecuteTemplate(rw, "tpl.gohtml", req.Form)
+	err = tpl.ExecuteTemplate(w, "tpl.gohtml", req.Form)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
