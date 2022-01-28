@@ -19,6 +19,7 @@ func init() {
 func main() {
 
 	router := httprouter.New()
+	router.NotFound = http.HandlerFunc(notFoundPageHandler)
 	router.GET("/", indexPageHandler)
 	router.GET("/about", aboutPageHandler)
 	router.GET("/main", mainPageHandler)
@@ -59,4 +60,9 @@ func mainPageHandler(w http.ResponseWriter, req *http.Request, params httprouter
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+}
+
+func notFoundPageHandler(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(404)
+	io.WriteString(w, "<!DOCTYPE html><html><head><title>Not Found Page</title></head><body><p>This page is not found</p></body></html>")
 }
