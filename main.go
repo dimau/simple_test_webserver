@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"text/template"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 // Инициализация контейнера с шаблонами HTML страниц
@@ -16,26 +18,35 @@ func init() {
 
 func main() {
 
-	http.HandleFunc("/", indexPageHandler)
-	http.HandleFunc("/about", aboutPageHandler)
-	http.HandleFunc("/main", mainPageHandler)
-	http.HandleFunc("/form_handler", mainPageHandler)
+	router := httprouter.New()
+	router.GET("/", indexPageHandler)
+	router.GET("/about", aboutPageHandler)
+	router.GET("/main", mainPageHandler)
+	router.POST("/form_handler", mainPageHandler)
+	router.GET("/form_handler", mainPageHandler)
+	router.GET("/user/:name/:surname", userPageHandler)
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", router)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 }
 
-func indexPageHandler(w http.ResponseWriter, req *http.Request) {
+func indexPageHandler(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	io.WriteString(w, "<!DOCTYPE html><html><head><title>Index page</title></head><body><p>It's index page</p></body></html>")
 }
 
-func aboutPageHandler(w http.ResponseWriter, req *http.Request) {
+func aboutPageHandler(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	io.WriteString(w, "<!DOCTYPE html><html><head><title>About page</title></head><body><p>It's about page</p></body></html>")
 }
 
-func mainPageHandler(w http.ResponseWriter, req *http.Request) {
+func userPageHandler(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	userName := params.ByName("name")
+	userSurname := params.ByName("surname")
+	io.WriteString(w, "<!DOCTYPE html><html><head><title>User page</title></head><body><p>User name: "+userName+" Surname: "+userSurname+"</p></body></html>")
+}
+
+func mainPageHandler(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 
 	// parsing and working with http request
 	err := req.ParseForm() // before get form data from http.Request you need to call this method
