@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Evoniser</title>
+</head>
+<body>
+    {{template "header" .}}
+    <h1>Evoniser - open ERP for everyone</h1>
+
+    {{if .Username}}
+        <div>
+            First Name: {{.FirstName}}
+            Last Name: {{.LastName}}
+            User Name: {{.Username}}
+            Password: {{.Password}}
+        </div>
+    {{else}}
+        Вы можете <a href="/signup">зарегистрироваться</a> на сайте
+    {{end}}
+
+</body>
+</html>
+
