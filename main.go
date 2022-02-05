@@ -7,11 +7,12 @@ import (
 	"log"
 	"net/http"
 	"text/template"
+	"time"
 )
 
 var tpl *template.Template // инициализация контейнера с шаблонами HTML страниц
 var userDB map[string]user
-var sessionDB map[string]string
+var sessionDB map[string]session
 
 type user struct {
 	FirstName string
@@ -20,10 +21,15 @@ type user struct {
 	Password []byte
 }
 
+type session struct {
+	Username string
+	CreationTime time.Time
+}
+
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
 	userDB = map[string]user{}
-	sessionDB = map[string]string{}
+	sessionDB = map[string]session{}
 }
 
 func main() {
@@ -80,8 +86,12 @@ func logInPageHandler(w http.ResponseWriter, r *http.Request) {
 		c := &http.Cookie{
 			Name:  "session",
 			Value: sID,
+			MaxAge: int(sessionLengthInHours.Seconds()),
 		}
-		sessionDB[sID] = username
+		sessionDB[sID] = session{
+			Username: username,
+			CreationTime: time.Now(),
+		}
 		http.SetCookie(w, c)
 
 		// Редирект на главную после успешной регистрации
@@ -158,8 +168,12 @@ func signUpPageHandler(w http.ResponseWriter, r *http.Request) {
 		c := &http.Cookie{
 			Name: "session",
 			Value: sID,
+			MaxAge: int(sessionLengthInHours.Seconds()),
 		}
-		sessionDB[sID] = user.Username
+		sessionDB[sID] = session{
+			Username:     user.Username,
+			CreationTime: time.Now(),
+		}
 		http.SetCookie(w, c)
 
 		// Редирект на главную после успешной регистрации
