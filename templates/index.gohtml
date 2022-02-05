@@ -4,20 +4,26 @@
     <title>Evoniser</title>
 </head>
 <body>
-    {{template "header" .}}
-    <h1>Evoniser - open ERP for everyone</h1>
-
+{{template "header" .}}
+<h1>Evoniser - open ERP for everyone</h1>
+<div style="float: right">
     {{if .Username}}
-        <div>
-            First Name: {{.FirstName}}
-            Last Name: {{.LastName}}
-            User Name: {{.Username}}
-            Password: {{.Password}}
-        </div>
+        User Name: {{.Username}}
+        <a href="/logout">Выйти</a>
     {{else}}
-        Вы можете <a href="/signup">зарегистрироваться</a> на сайте
+        <a href="/login">Войти</a>
+        <a href="/signup">Зарегистрироваться</a>
     {{end}}
-
+</div>
+<main>
+    {{if .Username}}
+        <div>Полная информация о пользователе</div>
+        <div>First Name: {{.FirstName}}</div>
+        <div>Last Name: {{.LastName}}</div>
+        <div>User Name: {{.Username}}</div>
+        <div>Password: {{.Password}}</div>
+    {{end}}
+</main>
 </body>
 </html>
 

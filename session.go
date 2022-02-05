@@ -10,23 +10,23 @@ func isLoggedIn(r *http.Request) bool {
 	}
 
 	// Проверяем, что сессия не истекла и у нас в БД она есть
-	_, ok := SessionDB[c.Value]
+	_, ok := sessionDB[c.Value]
 	return ok
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) User {
+func getUser(w http.ResponseWriter, r *http.Request) user {
 
-	user := User{}
+	u := user{}
 
 	if sid, err:= r.Cookie("session"); err != nil {
-		user = User{}
-	} else if username, ok := SessionDB[sid.Value]; !ok {
-		user = User{}
+		u = user{}
+	} else if username, ok := sessionDB[sid.Value]; !ok {
+		u = user{}
 	} else {
-		if user, ok = UserDB[username]; !ok {
-			user = User{}
+		if u, ok = userDB[username]; !ok {
+			u = user{}
 		}
 	}
 
-	return user
+	return u
 }

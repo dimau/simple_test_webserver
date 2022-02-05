@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"log"
 	"net/http"
@@ -9,25 +10,27 @@ import (
 )
 
 var tpl *template.Template // инициализация контейнера с шаблонами HTML страниц
-var UserDB map[string]User
-var SessionDB map[string]string
+var userDB map[string]user
+var sessionDB map[string]string
 
-type User struct {
+type user struct {
 	FirstName string
 	LastName string
 	Username string
-	Password string
+	Password []byte
 }
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
-	UserDB = map[string]User{}
-	SessionDB = map[string]string{}
+	userDB = map[string]user{}
+	sessionDB = map[string]string{}
 }
 
 func main() {
 	http.HandleFunc("/", indexPageHandler)
 	http.HandleFunc("/signup", signUpPageHandler)
+	http.HandleFunc("/login", logInPageHandler)
+	http.HandleFunc("/logout", logoutPageHandler)
 	http.HandleFunc("/secretpage", onlyForRegisteredUsersPageHandler)
 	http.HandleFunc("/favicon.ico", notFoundPageHandler)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
@@ -44,6 +47,76 @@ func indexPageHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func logInPageHandler(w http.ResponseWriter, r *http.Request) {
+	// Отправляем на главную страницу, если пользователь уже авторизован
+	if isLoggedIn(r) {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Обработка данных из заполненной формы
+	if r.Method == http.MethodPost {
+
+		// Получаем поля из формы
+		if err := r.ParseForm(); err != nil {
+			log.Fatalln(err.Error())
+		}
+		username := r.FormValue("email")
+		password := []byte(r.FormValue("password"))
+
+		// Находим пользователя с таким именем в базе и проверяем пароль
+		u, ok := userDB[username]
+		if !ok {
+			http.Error(w, "Username does not exist", http.StatusNotFound)
+			return
+		}
+		if err:= bcrypt.CompareHashAndPassword(u.Password, password); err != nil {
+			http.Error(w, "Password is not correct", http.StatusForbidden)
+			return
+		}
+
+		// Создаем сессию
+		sID := uuid.New().String()
+		c := &http.Cookie{
+			Name:  "session",
+			Value: sID,
+		}
+		sessionDB[sID] = username
+		http.SetCookie(w, c)
+
+		// Редирект на главную после успешной регистрации
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Выполнение шаблона и отправка страницы с формой
+	if err := tpl.ExecuteTemplate(w, "login.gohtml", nil); err != nil {
+		log.Fatalln(err.Error())
+	}
+}
+
+func logoutPageHandler(w http.ResponseWriter, r *http.Request) {
+	if !isLoggedIn(r) {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Удаляем информацию о сессии из БД на сервере
+	c, _ := r.Cookie("session")
+	delete(sessionDB, c.Value)
+
+	// Очищаем куку с id сессии на стороне клиента
+	c = &http.Cookie{
+		Name: "session",
+		Value: "",
+		MaxAge: -1,
+	}
+	http.SetCookie(w, c)
+
+	// Редирект на главную страницу сайта
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func signUpPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Отправляем на главную страницу, если пользователь уже авторизован
 	if isLoggedIn(r) {
@@ -58,21 +131,27 @@ func signUpPageHandler(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			log.Fatalln(err.Error())
 		}
-		user := User{
+		user := user{
 			FirstName: r.FormValue("first_name"),
 			LastName:  r.FormValue("last_name"),
 			Username:  r.FormValue("email"),
-			Password:  r.FormValue("password"),
+			Password:  []byte(r.FormValue("password")),
 		}
 
 		// Проверяем есть ли такой пользователь в базе
-		if _, ok := UserDB[user.Username]; ok {
+		if _, ok := userDB[user.Username]; ok {
 			http.Error(w, "This username is already exist", http.StatusForbidden)
 			return
 		}
 
-		// Сохраняем нового пользователя в базу
-		UserDB[user.Username] = user
+		// Шифруем пароль и сохраняем нового пользователя в базу
+		encryptedPass, err := bcrypt.GenerateFromPassword(user.Password, bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		user.Password = encryptedPass
+		userDB[user.Username] = user
 
 		// Создаем сессию
 		sID := uuid.New().String()
@@ -80,7 +159,7 @@ func signUpPageHandler(w http.ResponseWriter, r *http.Request) {
 			Name: "session",
 			Value: sID,
 		}
-		SessionDB[sID] = user.Username
+		sessionDB[sID] = user.Username
 		http.SetCookie(w, c)
 
 		// Редирект на главную после успешной регистрации
@@ -105,7 +184,7 @@ func onlyForRegisteredUsersPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func notFoundPageHandler(w http.ResponseWriter, req *http.Request) {
+func notFoundPageHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(404)
 	_, err := io.WriteString(w, "<!DOCTYPE html><html><head><title>Not Found Page</title></head><body><p>This page is not found</p></body></html>")
 	if err != nil {
