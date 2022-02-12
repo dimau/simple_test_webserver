@@ -2,38 +2,60 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/Dimau/simple_test_webserver/models"
+	"github.com/julienschmidt/httprouter"
+	"html/template"
+	"io"
 	"log"
+	"net/http"
 )
 
-// Объявление структуры, в которую будем демаршалить строку JSON
-type city struct {
-	Precision string  `json:"precision"`
-	Latitude  float64 `json:"latitude,omitempty"`
-	Longitude float64 `json:"longitude,omitempty"`
-	Address   string  `json:"address,omitempty"`
-	City      string  `json:"city,omitempty"`
-	State     string  `json:"state"`
-	Zip       string  `json:"zip"`
-	Country   string  `json:"country"`
-}
+var db *template.Template
+var err error
 
-type cities []city
+func init()  {
+	db, err = template.ParseGlob("templates/*.gohtml")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+}
 
 func main() {
-	// Исходная строка в JSON формате
-	rcvd := `[{"precision":"zip","Latitude":37.7668,"Longitude":-122.3959,"Address":"",
-"City":"SAN FRANCISCO","State":"CA","Zip":"94107","Country":"US"},
-{"precision":"zip","Latitude":37.371991,"Longitude":-122.02602,"Address":"",
-"City":"SUNNYVALE","State":"CA","Zip":"94085","Country":"US"}]`
-
-	// Демаршалинг строки в JSON формате в структуру Go
-	var data cities
-	err := json.Unmarshal([]byte(rcvd), &data)
+	router := httprouter.New()
+	router.GET("/", index)
+	router.GET("/user/:id", gerUser)
+	err := http.ListenAndServe(":8080", router)
 	if err != nil {
-		log.Fatalln("Error unmarshalling", err.Error())
+		log.Fatalln(err.Error())
 	}
-
-	// Используем структуру, созданную из JSON строки
-	log.Println(data)
 }
 
+func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	err := db.ExecuteTemplate(w, "index.gohtml", nil)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+}
+
+func gerUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	u := models.User{
+		Name:   "James Bond",
+		Gender: "Male",
+		Age:    32,
+		Id:     p.ByName("id"),
+	}
+
+	// Marshal into JSON
+	uj, err := json.Marshal(u)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Write content type, status code, payload
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = io.WriteString(w, string(uj))
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+}
