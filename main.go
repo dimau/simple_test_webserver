@@ -24,6 +24,8 @@ func main() {
 	router := httprouter.New()
 	router.GET("/", index)
 	router.GET("/user/:id", gerUser)
+	router.POST("/user/", createUser)
+	router.DELETE("/user/:id", deleteUser)
 	err := http.ListenAndServe(":8080", router)
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -58,4 +60,39 @@ func gerUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+}
+
+func createUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Объявляем переменную того типа, в который хотим преобразовать (декодировать) JSON
+	var u models.User
+
+	// Создаем декодер как обертку над stream http.Request.Body и декодируем его целиком
+	// Полученную строку пытаемся преобразовать к типу указанной переменной и записать в нее (&u)
+	err = json.NewDecoder(r.Body).Decode(&u)
+
+	// Обработка ошибок, если декодирование не удалось завершить корректно
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	u.Id = "007"
+
+	// Prepare json response
+	uj, err := json.Marshal(u)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Preparing and sending response to the client
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(uj)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+}
+
+func deleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	//TODO: write code to delete user
+	w.WriteHeader(http.StatusOK)
 }
