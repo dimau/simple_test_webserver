@@ -1,19 +1,27 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/Dimau/simple_test_webserver/models"
 	"github.com/julienschmidt/httprouter"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
 	"net/http"
 )
 
-// В итоге мы разместим здесь connection к БД
-type UserController struct{}
+type UserController struct{
+	mongoClient *mongo.Client
+	ctx context.Context
+}
 
-func NewUserController() *UserController {
-	return &UserController{}
+func NewUserController(mc *mongo.Client, ctx context.Context) *UserController {
+	return &UserController{
+		mongoClient: mc,
+		ctx: ctx,
+	}
 }
 
 func (uc UserController) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -21,7 +29,7 @@ func (uc UserController) GetUser(w http.ResponseWriter, r *http.Request, p httpr
 		Name:   "James Bond",
 		Gender: "Male",
 		Age:    32,
-		Id:     p.ByName("id"),
+		//Id:     p.ByName("id"),
 	}
 
 	// Marshal into JSON
@@ -52,7 +60,15 @@ func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ ht
 		log.Fatalln(err.Error())
 	}
 
-	u.Id = "007"
+	// Create bson ID
+	u.Id = primitive.NewObjectID()
+
+	// Store the user to MongoDB
+	collection := uc.mongoClient.Database("simple_test_webserver").Collection("users")
+	_, err = collection.InsertOne(uc.ctx, u)
+	if err != nil {
+		log.Fatalln("InsertOne problem", err.Error())
+	}
 
 	// Prepare json response
 	uj, err := json.Marshal(u)
